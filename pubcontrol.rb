@@ -105,7 +105,7 @@ class PubControl
 		end
 	end
 
-	private def gen_auth_header
+	def gen_auth_header
 		if !@auth_basic_user.nil?
 			return 'Basic ' + Base64.encode64(
 					'#{@auth_basic_user}:#{@auth_basic_pass}')
@@ -122,7 +122,7 @@ class PubControl
 		end
 	end
 
-	private def ensure_thread
+	def ensure_thread
 		if @thread.nil?
 			@thread_cond = ConditionVariable.new
 			@thread_mutex = Mutex.new
@@ -132,12 +132,12 @@ class PubControl
 		end
 	end
 
-	private def queue_req(req)
+	def queue_req(req)
 		# REVIEW: thread condition implementation
-		@thread_mutex.synchronize do
+		@thread_mutex.synchronize {
 			@req_queue.push_back(req)
 			@thread_cond.signal
-		end
+		}
 	end
 
 	def self.pubcall(uri, auth_header, items)
@@ -145,7 +145,7 @@ class PubControl
 		content = Hash.new
 		content['items'] = items
 		# REVIEW: POST implementation
-		request = Net::HTTP::Post.new(uri)
+		request = Net::HTTP::Post.new(uri.path)
 		# REVIEW: Ruby strings are unicode by default
 		# is forcing the encoding to UTF-8 necessary?
 		request.body = content.to_json.force_encoding("UTF-8")
@@ -218,4 +218,8 @@ class PubControl
 		# REVIEW: gmtime Ruby implementation
 		return Time.now.utc.to_i
 	end
+
+	private :queue_req
+	private :ensure_thread
+	private :gen_auth_header
 end
