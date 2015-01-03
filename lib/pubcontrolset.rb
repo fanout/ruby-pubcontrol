@@ -1,7 +1,7 @@
 #    pubcontrolset.rb
 #    ~~~~~~~~~
 #    This module implements the PubControlSet class.
-#    :copyright: (c) 2014 by Konstantin Bokarius.
+#    :copyright: (c) 2014 by Fanout.io.
 #    :license: MIT, see LICENSE for more details.
 
 require_relative 'pubcontrol.rb'

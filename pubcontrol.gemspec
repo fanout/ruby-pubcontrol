@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'pubcontrol'
-  s.version     = '0.0.3'
+  s.version     = '0.0.4'
   s.date        = '2015-01-02'
   s.summary     = "Ruby EPCP library"
   s.description = "A Ruby implementation of the EPCP protocol."
