@@ -11,6 +11,8 @@ require 'jwt'
 require 'json'
 require 'net/http'
 require_relative 'item.rb'
+require_relative 'format.rb'
+require_relative 'pubcontrolset.rb'
 
 class PubControl
   attr_accessor :req_queue
