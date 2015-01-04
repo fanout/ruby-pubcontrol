@@ -2,9 +2,8 @@ ruby-pubcontrol
 ===============
 
 Author: Konstantin Bokarius <bokarius@comcast.net>
-Mailing List: http://lists.fanout.io/listinfo.cgi/fanout-users-fanout.io
 
-A convenience library for Ruby implementing the EPCP protocol.
+A Ruby convenience library for publishing messages using the EPCP protocol.
 
 License
 -------
