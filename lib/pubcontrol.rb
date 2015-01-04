@@ -113,8 +113,7 @@ class PubControl
     content['items'] = items
     # REVIEW: POST implementation
     request = Net::HTTP::Post.new(uri.path)
-    # REVIEW: Ruby strings are unicode by default
-    # is encoding to UTF-8 necessary?
+    # REVIEW: is simply encoding in UTF-8 correct here?
     request.body = content.to_json.encode('utf-8')
     if !auth_header.nil?
       request['Authorization'] = auth_header
