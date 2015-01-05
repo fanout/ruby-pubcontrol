@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name        = 'pubcontrol'
-  s.version     = '0.0.5'
-  s.date        = '2015-01-04'
+  s.version     = '0.0.6'
+  s.date        = '2015-01-05'
   s.summary     = 'Ruby EPCP library'
   s.description = 'A Ruby convenience library for publishing messages using the EPCP protocol'
   s.authors     = ['Konstantin Bokarius']
@@ -11,4 +11,5 @@ Gem::Specification.new do |s|
   s.homepage    = 'http://rubygems.org/gems/pubcontrol'
   s.license     = 'MIT'
   s.required_ruby_version = '>= 1.9.0'
+  s.add_runtime_dependency 'jwt', '= 1.2.0'
 end
