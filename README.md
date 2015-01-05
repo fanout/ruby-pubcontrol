@@ -48,15 +48,15 @@ end
 pubcontrol = PubControl.new('https://api.fanout.io/realm/<myrealm>')
 pubcontrol.set_auth_jwt({'iss' => '<myrealm>'},
     Base64.decode64('<myrealmkey>'))
-pubcontrol.publish('test', Item.new(HttpResponseFormat.new(
+pubcontrol.publish('<channel>', Item.new(HttpResponseFormat.new(
     'Test publish!\n')))
-pubcontrol.publish_async('test', Item.new(HttpResponseFormat.new(
+pubcontrol.publish_async('<channel>', Item.new(HttpResponseFormat.new(
     'Test async publish!\n')), method(:callback))
 
 pubcontrolset = PubControlSet.new
 pubcontrolset.apply_config([{'uri' => 
     'https://api.fanout.io/realm/<myrealm>', 
     'iss' => '<myrealm>', 'key' => Base64.decode64('<myrealmkey>')}])
-pubcontrolset.publish('test', Item.new(HttpResponseFormat.new(
+pubcontrolset.publish('<channel>', Item.new(HttpResponseFormat.new(
     'PubControlSet test publish!\n')), false, method(:callback))
 ```
