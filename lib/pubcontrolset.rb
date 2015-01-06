@@ -45,20 +45,20 @@ class PubControlSet
     end
   end
 
-  def publish(channel, item, blocking=false, callback=nil)
-    if blocking
-      @pubs.each do |pub|
-        pub.publish(channel, item)
-      end
-    else
-      cb = nil
-      if !callback.nil?
-        cb = PubControlCallbackHandler.new(@pubs.length, callback).
-            handler_method_symbol
-      end
-      @pubs.each do |pub|
-        pub.publish_async(channel, item, cb)
-      end
+  def publish(channel, item)
+    @pubs.each do |pub|
+      pub.publish(channel, item)
+    end
+  end
+
+  def publish_async(channel, item, callback=nil)
+    cb = nil
+    if !callback.nil?
+      cb = PubControlCallbackHandler.new(@pubs.length, callback).
+          handler_method_symbol
+    end
+    @pubs.each do |pub|
+      pub.publish_async(channel, item, cb)
     end
   end
 

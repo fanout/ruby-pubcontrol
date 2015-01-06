@@ -1,7 +1,7 @@
 ruby-pubcontrol
 ===============
 
-Author: Konstantin Bokarius <bokarius@comcast.net>
+Author: Konstantin Bokarius <kon@fanout.io>
 
 A Ruby convenience library for publishing messages using the EPCP protocol.
 

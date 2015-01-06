@@ -152,7 +152,6 @@ class PubControl
   end
 
   def self.timestamp_utcnow
-    # REVIEW: gmtime Ruby implementation
     return Time.now.utc.to_i
   end
 
@@ -180,13 +179,10 @@ class PubControl
       @thread_cond = ConditionVariable.new
       @thread_mutex = Mutex.new
       @thread = Thread.new { pubworker }
-      # REVIEW: Ruby threads are daemonic by default 
-      #@thread.daemon = true
     end
   end
 
   def queue_req(req)
-    # REVIEW: thread condition implementation
     @thread_mutex.lock
     @req_queue.push_back(req)
     @thread_cond.signal
