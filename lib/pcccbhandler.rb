@@ -1,11 +1,11 @@
-#    format.rb
+#    pcccbhandler.rb
 #    ~~~~~~~~~
-#    This module implements the PubControlCallbackHandler class.
+#    This module implements the PubControlClientCallbackHandler class.
 #    :authors: Konstantin Bokarius.
 #    :copyright: (c) 2015 by Fanout, Inc.
 #    :license: MIT, see LICENSE for more details.
 
-class PubControlCallbackHandler
+class PubControlClientCallbackHandler
   def initialize(num_calls, callback)
     @num_calls = num_calls
     @callback = callback
