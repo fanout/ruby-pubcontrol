@@ -173,7 +173,7 @@ class PubControl
       end
       return 'Bearer ' + JWT.encode(claim, @auth_jwt_key)
     else
-      return None
+      return nil
     end
   end
 
