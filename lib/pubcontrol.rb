@@ -18,7 +18,7 @@ require_relative 'pubcontrolset.rb'
 class PubControl
   attr_accessor :req_queue
 
-  def initialize(uri, use_ssl=true)
+  def initialize(uri)
     @uri = uri
     @lock = Mutex.new
     @thread = nil
@@ -29,7 +29,6 @@ class PubControl
     @auth_basic_pass = nil
     @auth_jwt_claim = nil
     @auth_jwt_key = nil
-    @use_ssl = use_ssl
   end
 
   def set_auth_basic(username, password)
@@ -55,7 +54,7 @@ class PubControl
       uri = @uri
       auth = gen_auth_header
     end
-    PubControl.pubcall(uri, auth, [export], @use_ssl)
+    PubControl.pubcall(uri, auth, [export])
   end
 
   def publish_async(channel, item, callback=nil)
@@ -103,24 +102,23 @@ class PubControl
       end
       @thread_mutex.unlock
       if reqs.length > 0
-        PubControl.pubbatch(reqs, @use_ssl)
+        PubControl.pubbatch(reqs)
       end
     end
   end
 
-  def self.pubcall(uri, auth_header, items, use_ssl)
+  def self.pubcall(uri, auth_header, items)
     uri = URI(uri + '/publish/')
     content = Hash.new
     content['items'] = items
-    # REVIEW: POST implementation
-    request = Net::HTTP::Post.new(uri.path)
-    # REVIEW: is simply encoding in UTF-8 correct here?
-    request.body = content.to_json.encode('utf-8')
+    request = Net::HTTP::Post.new(uri.request_uri)
+    request.body = content.to_json
     if !auth_header.nil?
       request['Authorization'] = auth_header
     end
     request['Content-Type'] = 'application/json'
-    response = Net::HTTP.start(uri.host, use_ssl: use_ssl) do |http|
+    use_ssl = uri.scheme == 'https'
+    response = Net::HTTP.start(uri.host, uri.port, use_ssl: use_ssl) do |http|
       http.request(request)
     end
     # REVIEW: HTTPSuccess does not include 3xx status codes.
@@ -130,7 +128,7 @@ class PubControl
     end
   end
 
-  def self.pubbatch(reqs, use_ssl)
+  def self.pubbatch(reqs)
     raise 'reqs length == 0' unless reqs.length > 0
     uri = reqs[0][0]
     auth_header = reqs[0][1]
@@ -141,7 +139,7 @@ class PubControl
       callbacks.push(req[3])
     end
     begin
-      PubControl.pubcall(uri, auth_header, items, use_ssl)
+      PubControl.pubcall(uri, auth_header, items)
       result = [true, '']
     rescue => e
       result = [false, e.message]
