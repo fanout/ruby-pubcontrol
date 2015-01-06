@@ -18,7 +18,7 @@ require_relative 'pubcontrolset.rb'
 class PubControl
   attr_accessor :req_queue
 
-  def initialize(uri)
+  def initialize(uri, use_ssl=true)
     @uri = uri
     @lock = Mutex.new
     @thread = nil
@@ -29,6 +29,7 @@ class PubControl
     @auth_basic_pass = nil
     @auth_jwt_claim = nil
     @auth_jwt_key = nil
+    @use_ssl = use_ssl
   end
 
   def set_auth_basic(username, password)
@@ -54,7 +55,7 @@ class PubControl
       uri = @uri
       auth = gen_auth_header
     end
-    PubControl.pubcall(uri, auth, [export])
+    PubControl.pubcall(uri, auth, [export], @use_ssl)
   end
 
   def publish_async(channel, item, callback=nil)
@@ -102,12 +103,12 @@ class PubControl
       end
       @thread_mutex.unlock
       if reqs.length > 0
-        PubControl.pubbatch(reqs)
+        PubControl.pubbatch(reqs, @use_ssl)
       end
     end
   end
 
-  def self.pubcall(uri, auth_header, items)
+  def self.pubcall(uri, auth_header, items, use_ssl)
     uri = URI(uri + '/publish/')
     content = Hash.new
     content['items'] = items
@@ -119,7 +120,7 @@ class PubControl
       request['Authorization'] = auth_header
     end
     request['Content-Type'] = 'application/json'
-    response = Net::HTTP.start(uri.host, use_ssl: true) do |http|
+    response = Net::HTTP.start(uri.host, use_ssl: use_ssl) do |http|
       http.request(request)
     end
     # REVIEW: HTTPSuccess does not include 3xx status codes.
@@ -129,7 +130,7 @@ class PubControl
     end
   end
 
-  def self.pubbatch(reqs)
+  def self.pubbatch(reqs, use_ssl)
     raise 'reqs length == 0' unless reqs.length > 0
     uri = reqs[0][0]
     auth_header = reqs[0][1]
@@ -140,7 +141,7 @@ class PubControl
       callbacks.push(req[3])
     end
     begin
-      PubControl.pubcall(uri, auth_header, items)
+      PubControl.pubcall(uri, auth_header, items, use_ssl)
       result = [true, '']
     rescue => e
       result = [false, e.message]
