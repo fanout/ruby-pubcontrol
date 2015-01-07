@@ -159,7 +159,7 @@ class PubControlClient
       return 'Basic ' + Base64.encode64(
           '#{@auth_basic_user}:#{@auth_basic_pass}')
     elsif !@auth_jwt_claim.nil?
-      if !@auth_jwt_claim.has_key?('exp')
+      if !@auth_jwt_claim.key?('exp')
         claim = @auth_jwt_claim.clone
         claim['exp'] = PubControlClient.timestamp_utcnow + 3600
       else
