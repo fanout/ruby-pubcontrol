@@ -46,7 +46,7 @@ def callback(result, message)
 end
 
 # PubControl can be initialized with or without an endpoint configuration.
-# Each endpoint can include optional JWT authenticaion info.
+# Each endpoint can include optional JWT authentication info.
 # Multiple endpoints can be included in a single configuration.
 
 # Initialize PubControl with a single endpoint:
