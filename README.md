@@ -67,8 +67,8 @@ pubclient = PubControlClient.new('<myendpoint_uri>')
 pub.add_client(pubclient)
 
 # Publish across all configured endpoints:
-pub.publish('test', Item.new(HttpResponseFormat.new('Test publish!')))
-pub.publish_async('test', Item.new(HttpResponseFormat.new(
+pub.publish('<channel>', Item.new(HttpResponseFormat.new('Test publish!')))
+pub.publish_async('<channel>', Item.new(HttpResponseFormat.new(
     'Test async publish!')), method(:callback))
 
 # Wait for all async publish calls to complete:
