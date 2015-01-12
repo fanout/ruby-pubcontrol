@@ -62,7 +62,7 @@ pub.remove_all_clients
 
 # Explicitly add an endpoint as a PubControlClient instance:
 pubclient = PubControlClient.new('<myendpoint_uri'>)
-# Optionally set JWT auth: pubclient.set_auth_jwt('<claim>', '<jkey>')
+# Optionally set JWT auth: pubclient.set_auth_jwt('<claim>', '<key>')
 # Optionally set basic auth: pubclient.set_auth_basic('<user>', '<password>')
 pub.add_client(pubclient)
 
