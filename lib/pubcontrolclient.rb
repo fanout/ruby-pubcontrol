@@ -78,33 +78,6 @@ class PubControlClient
     end
   end
 
-  def pubworker
-    quit = false
-    while !quit do
-      @thread_mutex.lock
-      if @req_queue.length == 0
-        @thread_cond.wait(@thread_mutex)
-        if @req_queue.length == 0
-          @thread_mutex.unlock
-          next
-        end
-      end
-      reqs = Array.new
-      while @req_queue.length > 0 and reqs.length < 10 do
-        m = @req_queue.pop_front
-        if m[0] == 'stop'
-          quit = true
-          break
-        end
-        reqs.push([m[1], m[2], m[3], m[4]])
-      end
-      @thread_mutex.unlock
-      if reqs.length > 0
-        PubControlClient.pubbatch(reqs)
-      end
-    end
-  end
-
   def self.pubcall(uri, auth_header, items)
     uri = URI(uri + '/publish/')
     content = Hash.new
@@ -153,6 +126,33 @@ class PubControlClient
   end
 
   private
+
+  def pubworker
+    quit = false
+    while !quit do
+      @thread_mutex.lock
+      if @req_queue.length == 0
+        @thread_cond.wait(@thread_mutex)
+        if @req_queue.length == 0
+          @thread_mutex.unlock
+          next
+        end
+      end
+      reqs = Array.new
+      while @req_queue.length > 0 and reqs.length < 10 do
+        m = @req_queue.pop_front
+        if m[0] == 'stop'
+          quit = true
+          break
+        end
+        reqs.push([m[1], m[2], m[3], m[4]])
+      end
+      @thread_mutex.unlock
+      if reqs.length > 0
+        PubControlClient.pubbatch(reqs)
+      end
+    end
+  end
 
   def gen_auth_header
     if !@auth_basic_user.nil?
