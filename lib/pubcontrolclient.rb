@@ -52,7 +52,7 @@ class PubControlClient
       uri = @uri
       auth = gen_auth_header
     end
-    PubControlClient.pubcall(uri, auth, [export])
+    self.pubcall(uri, auth, [export])
   end
 
   def publish_async(channel, item, callback=nil)
@@ -78,7 +78,7 @@ class PubControlClient
     end
   end
 
-  def self.pubcall(uri, auth_header, items)
+  def pubcall(uri, auth_header, items)
     uri = URI(uri + '/publish/')
     content = Hash.new
     content['items'] = items
@@ -98,7 +98,7 @@ class PubControlClient
     end
   end
 
-  def self.pubbatch(reqs)
+  def pubbatch(reqs)
     raise 'reqs length == 0' unless reqs.length > 0
     uri = reqs[0][0]
     auth_header = reqs[0][1]
@@ -109,7 +109,7 @@ class PubControlClient
       callbacks.push(req[3])
     end
     begin
-      PubControlClient.pubcall(uri, auth_header, items)
+      self.pubcall(uri, auth_header, items)
       result = [true, '']
     rescue => e
       result = [false, e.message]
@@ -149,7 +149,7 @@ class PubControlClient
       end
       @thread_mutex.unlock
       if reqs.length > 0
-        PubControlClient.pubbatch(reqs)
+        self.pubbatch(reqs)
       end
     end
   end
@@ -157,7 +157,7 @@ class PubControlClient
   def gen_auth_header
     if !@auth_basic_user.nil?
       return 'Basic ' + Base64.encode64(
-          '#{@auth_basic_user}:#{@auth_basic_pass}')
+          "#{@auth_basic_user}:#{@auth_basic_pass}")
     elsif !@auth_jwt_claim.nil?
       if !@auth_jwt_claim.key?('exp')
         claim = @auth_jwt_claim.clone
