@@ -89,13 +89,18 @@ class PubControlClient
     end
     request['Content-Type'] = 'application/json'
     use_ssl = uri.scheme == 'https'
-    response = Net::HTTP.start(uri.host, uri.port, use_ssl: use_ssl) do |http|
-      http.request(request)
-    end
+    response = self.make_http_request(uri, use_ssl, request)
     if !response.kind_of? Net::HTTPSuccess
       raise 'failed to publish: ' + response.class.to_s + ' ' +
           response.message
     end
+  end
+
+  def make_http_request(uri, use_ssl, request)
+    response = Net::HTTP.start(uri.host, uri.port, use_ssl: use_ssl) do |http|
+      http.request(request)
+    end
+    return response
   end
 
   def pubbatch(reqs)

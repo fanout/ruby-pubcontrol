@@ -5,6 +5,7 @@ require 'thread'
 require 'base64'
 require 'pubcontrolclient'
 require 'minitest/autorun'
+require 'net/http'
 
 def callback_test_method(result, error)
 end
@@ -19,11 +20,13 @@ class TestFormatSubClass < Format
   end
 end
 
-class PccForPublishTesting < PubControlClient
+class PubControlClientForTesting < PubControlClient
   def set_test_instance(instance)
     @test_instance = instance
   end
+end
 
+class PccForPublishTesting < PubControlClientForTesting
   def pubcall(uri, auth_header, items)
     @test_instance.assert_equal(uri, 'uri')
     @test_instance.assert_equal(auth_header, 'Basic ' + Base64.encode64(
@@ -46,6 +49,29 @@ class PccForPublishTesting < PubControlClient
 
   def ensure_thread
     @ensure_thread_executed = true
+  end
+end
+
+class PccForPubCallTesting < PubControlClientForTesting
+  def set_params(uri, use_ssl, auth, result_failure = false)
+    @http_uri = uri
+    @http_use_ssl = use_ssl
+    @http_auth = auth
+    @http_result_failure = result_failure
+  end
+
+  def make_http_request(uri, use_ssl, request)
+    @test_instance.assert_equal(uri, URI(@http_uri + '/publish/'))
+    @test_instance.assert_equal(use_ssl, @http_use_ssl)
+    @test_instance.assert_equal(request.body, {'items' => 
+        [{'name' => {'body' => 'bodyvalue'}, 'channel' => 'chann'}]}.to_json)
+    @test_instance.assert_equal(request['Authorization'], @http_auth)
+    @test_instance.assert_equal(request['Content-Type'], 'application/json')
+    if @http_result_failure
+      return Net::HTTPServerError.new(1.0, 400,
+          'Bad request')
+    end
+    return Net::HTTPSuccess.new(1.0, 200, 'Ok')
   end
 end
 
@@ -151,5 +177,44 @@ class TestPubControlClient < Minitest::Test
     pcc.publish_async('chann', Item.new(TestFormatSubClass.new),
         :callback_test_method)
     assert(pcc.instance_variable_get(:@ensure_thread_executed))
+  end
+
+  def test_pubcall_success_http
+    pcc = PccForPubCallTesting.new('uri')
+    pcc.set_auth_basic('user', 'pass')
+    pcc.set_params('http://localhost:8080', false, 'Basic ' +
+        Base64.encode64('user:pass'))
+    pcc.set_test_instance(self)
+    pcc.send(:pubcall, 'http://localhost:8080', 'Basic ' +
+        Base64.encode64('user:pass'), [{'name' => {'body' => 'bodyvalue'},
+        'channel' => 'chann'}])
+  end
+
+  def test_pubcall_success_https
+    pcc = PccForPubCallTesting.new('uri')
+    pcc.set_auth_jwt({'iss' => 'hello', 'exp' => 1426106601},
+        Base64.decode64('key'))
+    pcc.set_test_instance(self)
+    pcc.set_params('https://localhost:8080', true, 'Bearer eyJ0eXAiOiJKV' +
+        '1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJoZWxsbyIsImV4cCI6MTQyN' +
+        'jEwNjYwMX0.92NIP0QPWbA-wRgsTA6zCwxejMgLkHep0S4UcAY3tN4')
+    pcc.send(:pubcall, 'https://localhost:8080', 'Bearer eyJ0eXAiOiJKV' +
+        '1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJoZWxsbyIsImV4cCI6MTQyN' +
+        'jEwNjYwMX0.92NIP0QPWbA-wRgsTA6zCwxejMgLkHep0S4UcAY3tN4',
+        [{'name' => {'body' => 'bodyvalue'}, 'channel' => 'chann'}])
+  end
+
+  def test_pubcall_failure
+    pcc = PccForPubCallTesting.new('uri')
+    pcc.set_params('http://localhost:8080', false, nil, true)
+    pcc.set_test_instance(self)
+    begin
+      pcc.send(:pubcall, 'http://localhost:8080', nil, [{'name' =>
+          {'body' => 'bodyvalue'}, 'channel' => 'chann'}])
+      assert(false, 'HTTPServerError not raised')
+    rescue => e
+      assert(e.message.index('HTTPServerError'))
+      assert(e.message.index('Bad request'))
+    end
   end
 end
