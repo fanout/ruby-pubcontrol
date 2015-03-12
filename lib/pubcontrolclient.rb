@@ -65,7 +65,7 @@ class PubControlClient
       uri = @uri
       auth = gen_auth_header
     end
-    self.pubcall(uri, auth, [export])
+    pubcall(uri, auth, [export])
   end
 
   # The asynchronous publish method for publishing the specified item to the
@@ -119,7 +119,7 @@ class PubControlClient
     end
     request['Content-Type'] = 'application/json'
     use_ssl = uri.scheme == 'https'
-    response = self.make_http_request(uri, use_ssl, request)
+    response = make_http_request(uri, use_ssl, request)
     if !response.kind_of? Net::HTTPSuccess
       raise 'failed to publish: ' + response.class.to_s + ' ' +
           response.message
@@ -153,7 +153,7 @@ class PubControlClient
       callbacks.push(req[3])
     end
     begin
-      self.pubcall(uri, auth_header, items)
+      pubcall(uri, auth_header, items)
       result = [true, '']
     rescue => e
       result = [false, e.message]
@@ -192,7 +192,7 @@ class PubControlClient
       end
       @thread_mutex.unlock
       if reqs.length > 0
-        self.pubbatch(reqs)
+        pubbatch(reqs)
       end
     end
   end
