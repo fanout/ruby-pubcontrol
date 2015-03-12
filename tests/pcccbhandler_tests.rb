@@ -33,29 +33,29 @@ class TestItem < Minitest::Test
     assert(@callback_success.nil?)
     handler.handler(true, nil)
     assert(@callback_success.nil?)
-    handler.handler(true, "shouldn't be there")
+    handler.handler(true, 'should not be there')
     assert(@callback_success)
     assert(@callback_error.nil?)
   end
 
   def test_handler_one_call_failure
     handler = PubControlClientCallbackHandler.new(1, method(:callback))
-    handler.handler(false, "failure")
+    handler.handler(false, 'failure')
     assert(@callback_success == false)
-    assert(@callback_error == "failure")
+    assert(@callback_error == 'failure')
   end
 
   def test_handler_three_call_failure
     handler = PubControlClientCallbackHandler.new(3, method(:callback))
-    handler.handler(false, "failure")
+    handler.handler(false, 'failure')
     assert(@callback_success.nil?)
     assert(@callback_error.nil?)
     handler.handler(true, nil)
     assert(@callback_success.nil?)
     assert(@callback_error.nil?)
-    handler.handler(false, "failure2")
+    handler.handler(false, 'failure2')
     assert(@callback_success == false)
-    assert(@callback_error == "failure")
+    assert(@callback_error == 'failure')
   end
 
   def test_handler_method_symbol

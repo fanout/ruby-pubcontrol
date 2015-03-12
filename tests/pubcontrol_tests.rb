@@ -47,15 +47,15 @@ class TestPubControl < Minitest::Test
 
   def test_remove_all_clients
     pc = PubControl.new
-    pc.instance_variable_get(:@clients).push("client")
+    pc.instance_variable_get(:@clients).push('client')
     pc.remove_all_clients
     assert_equal(pc.instance_variable_get(:@clients).length, 0)
   end
 
   def test_add_client
     pc = PubControl.new
-    pc.add_client("client")
-    assert_equal(pc.instance_variable_get(:@clients)[0], "client")
+    pc.add_client('client')
+    assert_equal(pc.instance_variable_get(:@clients)[0], 'client')
   end
 
   def test_apply_config
@@ -65,25 +65,25 @@ class TestPubControl < Minitest::Test
         {'uri' => 'uri2', 'iss' => 'iss2', 'key' => 'key2'}]
     pc.apply_config(config)
     assert_equal(pc.instance_variable_get(
-        :@clients)[0].instance_variable_get(:@uri), "uri")
+        :@clients)[0].instance_variable_get(:@uri), 'uri')
     assert_equal(pc.instance_variable_get(
         :@clients)[0].instance_variable_get(:@auth_jwt_claim), nil)
     assert_equal(pc.instance_variable_get(
         :@clients)[0].instance_variable_get(:@auth_jwt_key), nil)
     assert_equal(pc.instance_variable_get(
-        :@clients)[1].instance_variable_get(:@uri), "uri1")
+        :@clients)[1].instance_variable_get(:@uri), 'uri1')
     assert_equal(pc.instance_variable_get(
         :@clients)[1].instance_variable_get(:@auth_jwt_claim),
         {'iss' => 'iss1'})
     assert_equal(pc.instance_variable_get(
-        :@clients)[1].instance_variable_get(:@auth_jwt_key), "key1")
+        :@clients)[1].instance_variable_get(:@auth_jwt_key), 'key1')
     assert_equal(pc.instance_variable_get(
-        :@clients)[2].instance_variable_get(:@uri), "uri2")
+        :@clients)[2].instance_variable_get(:@uri), 'uri2')
     assert_equal(pc.instance_variable_get(
         :@clients)[2].instance_variable_get(:@auth_jwt_claim),
         {'iss' => 'iss2'})
     assert_equal(pc.instance_variable_get(
-        :@clients)[2].instance_variable_get(:@auth_jwt_key), "key2")
+        :@clients)[2].instance_variable_get(:@auth_jwt_key), 'key2')
   end
 
   def test_finish
@@ -108,10 +108,10 @@ class TestPubControl < Minitest::Test
       pccs.push(pcc)
       pc.add_client(pcc)
     end
-    pc.publish("channel", "item")
+    pc.publish('channel', 'item')
     (0..3).each do |n|
-      assert_equal(pccs[n].publish_channel, "channel")
-      assert_equal(pccs[n].publish_item, "item")
+      assert_equal(pccs[n].publish_channel, 'channel')
+      assert_equal(pccs[n].publish_item, 'item')
     end
   end
 
@@ -123,10 +123,10 @@ class TestPubControl < Minitest::Test
       pccs.push(pcc)
       pc.add_client(pcc)
     end
-    pc.publish_async("channel", "item")
+    pc.publish_async('channel', 'item')
     (0..3).each do |n|
-      assert_equal(pccs[n].publish_channel, "channel")
-      assert_equal(pccs[n].publish_item, "item")
+      assert_equal(pccs[n].publish_channel, 'channel')
+      assert_equal(pccs[n].publish_item, 'item')
       assert_equal(pccs[n].publish_callback, nil)
     end
   end
@@ -147,10 +147,10 @@ class TestPubControl < Minitest::Test
       pccs.push(pcc)
       pc.add_client(pcc)
     end
-    pc.publish_async("channel", "item", method(:callback_for_testing))
+    pc.publish_async('channel', 'item', method(:callback_for_testing))
     (0..3).each do |n|
-      assert_equal(pccs[n].publish_channel, "channel")
-      assert_equal(pccs[n].publish_item, "item")
+      assert_equal(pccs[n].publish_channel, 'channel')
+      assert_equal(pccs[n].publish_item, 'item')
       pccs[n].publish_callback.call(false, 'error')
     end
     assert(@has_callback_been_called)

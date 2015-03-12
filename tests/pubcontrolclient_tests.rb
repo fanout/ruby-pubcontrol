@@ -39,7 +39,7 @@ class PccForPublishTesting < PubControlClientForTesting
         'user:pass'))
     @test_instance.assert_equal(req[3], {'name' => {'body' => 'bodyvalue'},
         'channel' => 'chann'})
-    @test_instance.assert_equal(req[4], "callback")
+    @test_instance.assert_equal(req[4], 'callback')
   end
 
   def ensure_thread
@@ -112,7 +112,7 @@ class PccForPubWorkerTesting < PubControlClientForTesting
       export = Item.new(TestFormatSubClass.new).export
       export['channel'] = 'chann'
       @test_instance.assert_equal(req[2], export)
-      @test_instance.assert_equal(req[3], "callback")
+      @test_instance.assert_equal(req[3], 'callback')
       @req_index += 1
     end     
   end
@@ -217,7 +217,7 @@ class TestPubControlClient < Minitest::Test
     pcc = PccForPublishTesting.new('uri')
     pcc.set_auth_basic('user', 'pass')
     pcc.set_test_instance(self)
-    pcc.publish_async('chann', Item.new(TestFormatSubClass.new), "callback")
+    pcc.publish_async('chann', Item.new(TestFormatSubClass.new), 'callback')
     assert(pcc.instance_variable_get(:@ensure_thread_executed))
   end
 
@@ -312,7 +312,7 @@ class TestPubControlClient < Minitest::Test
     (0..500 - 1).each do |n|
       pcc.instance_variable_get(:@req_queue).push_back(['pub', 'uri',
           'Basic ' + Base64.encode64('user:pass' + n.to_s), export,
-          "callback"])
+          'callback'])
     end
     pcc.finish
     assert_equal(pcc.req_index, 500)
@@ -331,7 +331,7 @@ class TestPubControlClient < Minitest::Test
       else
         pcc.instance_variable_get(:@req_queue).push_back(['pub', 'uri',
             'Basic ' + Base64.encode64('user:pass' + n.to_s), export,
-            "callback"])
+            'callback'])
       end
     end
     pcc.finish
