@@ -35,8 +35,6 @@ class PccForPublishTesting < PubControlClientForTesting
         'channel' => 'chann'}])
   end
 
-  private 
-
   def queue_req(req)
     @test_instance.assert_equal(req[0], 'pub')
     @test_instance.assert_equal(req[1], 'uri')
@@ -72,6 +70,29 @@ class PccForPubCallTesting < PubControlClientForTesting
           'Bad request')
     end
     return Net::HTTPSuccess.new(1.0, 200, 'Ok')
+  end
+end
+
+class PccForPubBatchTesting < PubControlClientForTesting
+  def set_params(result_failure, num_callbacks)
+    @num_callbacks = num_callbacks
+    @http_result_failure = result_failure
+  end
+
+  def pubcall(uri, auth_header, items)
+    @test_instance.assert_equal(uri, 'uri')
+    @test_instance.assert_equal(auth_header, 'Basic ' + Base64.encode64(
+        'user:pass'))
+    items_to_compare_with = []
+    export = Item.new(TestFormatSubClass.new).export
+    export['channel'] = 'chann'
+    (0..@num_callbacks - 1).each do |n|
+      items_to_compare_with.push(export.clone)
+    end
+    @test_instance.assert_equal(items, items_to_compare_with)
+    if @http_result_failure
+      raise 'error message'
+    end
   end
 end
 
@@ -216,5 +237,25 @@ class TestPubControlClient < Minitest::Test
       assert(e.message.index('HTTPServerError'))
       assert(e.message.index('Bad request'))
     end
+  end
+
+  def test_pubbatch_success
+    pcc = PccForPubBatchTesting.new('uri')
+    pcc.set_test_instance(self)
+    @num_cbs_expected = 5
+    pcc.set_params(nil, @num_cbs_expected)
+    reqs = []
+    export = Item.new(TestFormatSubClass.new).export
+    export['channel'] = 'chann'
+    (0..@num_cbs_expected - 1).each do |n|
+      reqs.push(['uri', 'Basic ' + Base64.encode64('user:pass'),
+          export, method(:pubbatch_callback)])
+    end
+    pcc.send(:pubbatch, reqs)
+    assert_equal(@num_cbs_expected, 0)
+  end
+
+  def pubbatch_callback(result, message)
+    @num_cbs_expected -= 1
   end
 end
