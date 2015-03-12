@@ -13,9 +13,16 @@ require 'json'
 require 'net/http'
 require_relative 'item.rb'
 
+# The PubControlClient class allows consumers to publish either synchronously 
+# or asynchronously to an endpoint of their choice. The consumer wraps a Format
+# class instance in an Item class instance and passes that to the publish
+# methods. The async publish method has an optional callback parameter that
+# is called after the publishing is complete to notify the consumer of the
+# result.
 class PubControlClient
   attr_accessor :req_queue
 
+  # Initialize this class with a URL representing the publishing endpoint.
   def initialize(uri)
     @uri = uri
     @lock = Mutex.new
@@ -29,6 +36,8 @@ class PubControlClient
     @auth_jwt_key = nil
   end
 
+  # Call this method and pass a username and password to use basic
+  # authentication with the configured endpoint.
   def set_auth_basic(username, password)
     @lock.synchronize do
       @auth_basic_user = username
@@ -36,6 +45,8 @@ class PubControlClient
     end
   end
 
+  # Call this method and pass a claim and key to use JWT authentication
+  # with the configured endpoint.
   def set_auth_jwt(claim, key)
     @lock.synchronize do
       @auth_jwt_claim = claim
@@ -43,6 +54,8 @@ class PubControlClient
     end
   end
 
+  # The synchronous publish method for publishing the specified item to the
+  # specified channel on the configured endpoint.
   def publish(channel, item)
     export = item.export
     export['channel'] = channel
@@ -55,6 +68,10 @@ class PubControlClient
     self.pubcall(uri, auth, [export])
   end
 
+  # The asynchronous publish method for publishing the specified item to the
+  # specified channel on the configured endpoint. The callback method is
+  # optional and will be passed the publishing results after publishing is
+  # complete.
   def publish_async(channel, item, callback=nil)
     export = item.export
     export['channel'] = channel
@@ -68,6 +85,9 @@ class PubControlClient
     queue_req(['pub', uri, auth, export, callback])
   end
 
+  # The finish method is a blocking method that ensures that all asynchronous
+  # publishing is complete prior to returning and allowing the consumer to 
+  # proceed.
   def finish
     @lock.synchronize do
       if !@thread.nil?
@@ -78,6 +98,16 @@ class PubControlClient
     end
   end
 
+  # A helper method for returning the current UNIX UTC timestamp.
+  def self.timestamp_utcnow
+    return Time.now.utc.to_i
+  end
+
+  private
+
+  # An internal method for preparing the HTTP POST request for publishing
+  # data to the endpoint. This method accepts the URI endpoint, authorization
+  # header, and a list of items to publish.
   def pubcall(uri, auth_header, items)
     uri = URI(uri + '/publish/')
     content = Hash.new
@@ -96,6 +126,9 @@ class PubControlClient
     end
   end
 
+  # An internal method for making the specified HTTP request to the
+  # specified URI with an option that determines whether to use
+  # SSL.
   def make_http_request(uri, use_ssl, request)
     response = Net::HTTP.start(uri.host, uri.port, use_ssl: use_ssl) do |http|
       http.request(request)
@@ -103,6 +136,12 @@ class PubControlClient
     return response
   end
 
+  # An internal method for publishing a batch of requests. The requests are
+  # parsed for the URI, authorization header, and each request is published
+  # to the endpoint. After all publishing is complete, each callback
+  # corresponding to each request is called (if a callback was originally
+  # provided for that request) and passed a result indicating whether that
+  # request was successfully published.
   def pubbatch(reqs)
     raise 'reqs length == 0' unless reqs.length > 0
     uri = reqs[0][0]
@@ -126,12 +165,11 @@ class PubControlClient
     end
   end
 
-  def self.timestamp_utcnow
-    return Time.now.utc.to_i
-  end
-
-  private
-
+  # An internal method that is meant to run as a separate thread and process
+  # asynchronous publishing requests. The method runs continously and
+  # publishes requests in batches containing a maximum of 10 requests. The
+  # method completes and the thread is terminated only when a 'stop' command
+  # is provided in the request queue.
   def pubworker
     quit = false
     while !quit do
@@ -159,6 +197,10 @@ class PubControlClient
     end
   end
 
+  # An internal method used to generate an authorization header. The
+  # authorization header is generated based on whether basic or JWT
+  # authorization information was provided via the publicly accessible
+  # 'set_*_auth' methods defined above.
   def gen_auth_header
     if !@auth_basic_user.nil?
       return 'Basic ' + Base64.encode64(
@@ -176,6 +218,10 @@ class PubControlClient
     end
   end
 
+  # An internal method that ensures that asynchronous publish calls are
+  # properly processed. This method initializes the required class fields,
+  # starts the pubworker worker thread, and is meant to execute only when
+  # the consumer makes an asynchronous publish call.
   def ensure_thread
     if @thread.nil?
       @thread_cond = ConditionVariable.new
@@ -184,6 +230,10 @@ class PubControlClient
     end
   end
 
+  # An internal method for adding an asynchronous publish request to the 
+  # publishing queue. This method will also activate the pubworker worker
+  # thread to make sure that it process any and all requests added to
+  # the queue.
   def queue_req(req)
     @thread_mutex.lock
     @req_queue.push_back(req)
