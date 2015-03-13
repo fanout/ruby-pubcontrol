@@ -60,6 +60,11 @@ class TestPubControl < Minitest::Test
 
   def test_apply_config
     pc = PubControl.new
+    config = {'uri' => 'uri'}
+    pc.apply_config(config)
+    assert_equal(pc.instance_variable_get(
+        :@clients)[0].instance_variable_get(:@uri), 'uri')
+    pc = PubControl.new
     config = [{'uri' => 'uri'},
         {'uri' => 'uri1', 'iss' => 'iss1', 'key' => 'key1'},
         {'uri' => 'uri2', 'iss' => 'iss2', 'key' => 'key2'}]
