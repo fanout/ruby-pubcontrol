@@ -7,14 +7,15 @@
 
 require_relative 'format.rb'
 
-# The Item class is a container used to contain one or multiple format
-# implementation instances. The type of format implementations may be
-# of the same or different format types. An Item instance is serialized
-# into a hash that is used for publishing to clients.
+# The Item class is a container used to contain one or more format
+# implementation instances where each implementation instance is of a
+# different type of format. An Item instance may not contain multiple
+# implementations of the same type of format. An Item instance is then
+# serialized into a hash that is used for publishing to clients.
 class Item
 
-  # The initialize method can accept either a single format implementation
-  # instance or an array of format implementation instances. Optionally
+  # The initialize method can accept either a single Format implementation
+  # instance or an array of Format implementation instances. Optionally
   # specify an ID and/or previous ID to be sent as part of the message
   # published to the client.
   def initialize(formats, id=nil, prev_id=nil)
@@ -27,8 +28,17 @@ class Item
   end
 
   # The export method serializes all of the formats, ID, and previous ID
-  # into a hash that is used for publishing to clients.
+  # into a hash that is used for publishing to clients. If more than one
+  # instance of the same type of Format implementation was specified then
+  # an error will be raised.
   def export
+    format_types = []
+    @formats.each do |format|
+      if !format_types.index(format.class.name).nil?
+        raise 'more than one instance of ' + format.class.name + ' specified'
+      end
+      format_types.push(format.class.name)
+    end
     out = Hash.new
     if !@id.nil?
       out['id'] = @id
