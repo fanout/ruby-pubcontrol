@@ -148,16 +148,20 @@ class PubControlClient
   # corresponding to each request is called (if a callback was originally
   # provided for that request) and passed a result indicating whether that
   # request was successfully published.
-  def pubbatch(reqs)
-    raise 'reqs length == 0' unless reqs.length > 0
-    uri = reqs[0][0]
-    auth_header = reqs[0][1]
+  def pubbatch(reqs)    
+    raise 'reqs length == 0' unless reqs.length > 0    
+    uri = reqs[0][0]    
+    auth_header = reqs[0][1]    
     items = Array.new
     callbacks = Array.new
     reqs.each do |req|
-      items.push(req[2])
+      if req[2].is_a? Array
+        items = items + req[2]
+      else
+        items.push(req[2])
+      end
       callbacks.push(req[3])
-    end
+    end        
     begin
       pubcall(uri, auth_header, items)
       result = [true, '']
