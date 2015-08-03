@@ -65,9 +65,9 @@ class PubControl
 
   # The synchronous publish method for publishing the specified item to the
   # specified channel for all of the configured PubControlClient instances.
-  def publish(channel, item)
+  def publish(channels, item)
     @clients.each do |pub|
-      pub.publish(channel, item)
+      pub.publish(channels, item)
     end
   end
 
@@ -77,14 +77,14 @@ class PubControl
   # complete. Note that a failure to publish in any of the configured
   # PubControlClient instances will result in a failure result being passed
   # to the callback method along with the first encountered error message.
-  def publish_async(channel, item, callback=nil)
+  def publish_async(channels, item, callback=nil)
     cb = nil
     if !callback.nil?
       cb = PubControlClientCallbackHandler.new(@clients.length, callback).
           handler_method_symbol
     end
     @clients.each do |pub|
-      pub.publish_async(channel, item, cb)
+      pub.publish_async(channels, item, cb)
     end
   end
 end
