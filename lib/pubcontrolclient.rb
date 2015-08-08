@@ -56,33 +56,39 @@ class PubControlClient
 
   # The synchronous publish method for publishing the specified item to the
   # specified channel on the configured endpoint.
-  def publish(channel, item)
-    export = item.export
-    export['channel'] = channel
-    uri = nil
-    auth = nil
-    @lock.synchronize do
-      uri = @uri
-      auth = gen_auth_header
+  def publish(channels, item)
+    exports = [channels].flatten.map do |channel|
+      export            = item.export
+      export['channel'] = channel
+      export
     end
-    pubcall(uri, auth, [export])
+    uri   = nil
+    auth  = nil
+    @lock.synchronize do
+      uri   = @uri
+      auth  = gen_auth_header
+    end
+    pubcall(uri, auth, exports)
   end
 
   # The asynchronous publish method for publishing the specified item to the
   # specified channel on the configured endpoint. The callback method is
   # optional and will be passed the publishing results after publishing is
   # complete.
-  def publish_async(channel, item, callback=nil)
-    export = item.export
-    export['channel'] = channel
-    uri = nil
-    auth = nil
+  def publish_async(channels, item, callback=nil)
+    exports = [channels].flatten.map do |channel|
+      export            = item.export
+      export['channel'] = channel
+      export
+    end
+    uri   = nil
+    auth  = nil
     @lock.synchronize do
-      uri = @uri
-      auth = gen_auth_header
+      uri   = @uri
+      auth  = gen_auth_header
       ensure_thread
     end
-    queue_req(['pub', uri, auth, export, callback])
+    queue_req(['pub', uri, auth, exports, callback])
   end
 
   # The finish method is a blocking method that ensures that all asynchronous
@@ -149,7 +155,11 @@ class PubControlClient
     items = Array.new
     callbacks = Array.new
     reqs.each do |req|
-      items.push(req[2])
+      if req[2].is_a? Array
+        items = items + req[2]
+      else
+        items.push(req[2])
+      end
       callbacks.push(req[3])
     end
     begin
