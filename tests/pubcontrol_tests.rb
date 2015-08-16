@@ -118,6 +118,18 @@ class TestPubControl < Minitest::Test
       assert_equal(pccs[n].publish_channel, 'channel')
       assert_equal(pccs[n].publish_item, 'item')
     end
+    pc = PubControl.new
+    pccs = []
+    (0..3).each do |n|
+      pcc = PubControlClientTestClass.new
+      pccs.push(pcc)
+      pc.add_client(pcc)
+    end
+    pc.publish(['channel', 'channel2'], 'item')
+    (0..3).each do |n|
+      assert_equal(pccs[n].publish_channel, ['channel', 'channel2'])
+      assert_equal(pccs[n].publish_item, 'item')
+    end
   end
 
   def test_publish_async_without_callback
@@ -131,6 +143,19 @@ class TestPubControl < Minitest::Test
     pc.publish_async('channel', 'item')
     (0..3).each do |n|
       assert_equal(pccs[n].publish_channel, 'channel')
+      assert_equal(pccs[n].publish_item, 'item')
+      assert_equal(pccs[n].publish_callback, nil)
+    end
+    pc = PubControl.new
+    pccs = []
+    (0..3).each do |n|
+      pcc = PubControlClientTestClass.new
+      pccs.push(pcc)
+      pc.add_client(pcc)
+    end
+    pc.publish_async(['channel', 'channel2'], 'item')
+    (0..3).each do |n|
+      assert_equal(pccs[n].publish_channel, ['channel', 'channel2'])
       assert_equal(pccs[n].publish_item, 'item')
       assert_equal(pccs[n].publish_callback, nil)
     end

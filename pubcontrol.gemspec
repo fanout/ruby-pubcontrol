@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name        = 'pubcontrol'
-  s.version     = '1.0.3'
-  s.date        = '2015-03-12'
+  s.version     = '1.1.0'
+  s.date        = '2015-08-15'
   s.summary     = 'Ruby EPCP library'
   s.description = 'A Ruby convenience library for publishing messages using the EPCP protocol'
   s.authors     = ['Konstantin Bokarius']

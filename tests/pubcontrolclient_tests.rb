@@ -37,8 +37,34 @@ class PccForPublishTesting < PubControlClientForTesting
     @test_instance.assert_equal(req[1], 'uri')
     @test_instance.assert_equal(req[2], 'Basic ' + Base64.encode64(
         'user:pass'))
-    @test_instance.assert_equal(req[3], {'name' => {'body' => 'bodyvalue'},
-        'channel' => 'chann'})
+    @test_instance.assert_equal(req[3], [{'name' => {'body' => 'bodyvalue'},
+        'channel' => 'chann'}])
+    @test_instance.assert_equal(req[4], 'callback')
+  end
+
+  def ensure_thread
+    @ensure_thread_executed = true
+  end
+end
+
+class PccForPublishTesting2 < PubControlClientForTesting
+  def pubcall(uri, auth_header, items)
+    @test_instance.assert_equal(uri, 'uri')
+    @test_instance.assert_equal(auth_header, 'Basic ' + Base64.encode64(
+        'user:pass'))
+    @test_instance.assert_equal(items, [{'name' => {'body' => 'bodyvalue'},
+        'channel' => 'chann'}, {'name' => {'body' => 'bodyvalue'},
+        'channel' => 'chann2'}])
+  end
+
+  def queue_req(req)
+    @test_instance.assert_equal(req[0], 'pub')
+    @test_instance.assert_equal(req[1], 'uri')
+    @test_instance.assert_equal(req[2], 'Basic ' + Base64.encode64(
+        'user:pass'))
+    @test_instance.assert_equal(req[3], [{'name' => {'body' => 'bodyvalue'},
+        'channel' => 'chann'}, {'name' => {'body' => 'bodyvalue'},
+        'channel' => 'chann2'}])
     @test_instance.assert_equal(req[4], 'callback')
   end
 
@@ -86,6 +112,34 @@ class PccForPubBatchTesting < PubControlClientForTesting
     export['channel'] = 'chann'
     (0..@num_callbacks - 1).each do |n|
       items_to_compare_with.push(export.clone)
+    end
+    @req_index += 1
+    @test_instance.assert_equal(items, items_to_compare_with)
+    if @http_result_failure
+      raise 'error message'
+    end
+  end
+end
+
+class PccForPubBatchTesting2 < PubControlClientForTesting
+  def set_params(result_failure, num_callbacks)
+    @req_index = 0
+    @num_callbacks = num_callbacks
+    @http_result_failure = result_failure
+  end
+
+  def pubcall(uri, auth_header, items)
+    @test_instance.assert_equal(uri, 'uri')
+    @test_instance.assert_equal(auth_header, 'Basic ' + Base64.encode64(
+        'user:pass' + @req_index.to_s))
+    items_to_compare_with = []
+    export = Item.new(TestFormatSubClass.new).export
+    export['channel'] = 'chann'
+    export2 = Item.new(TestFormatSubClass.new).export
+    export2['channel'] = 'chann2'
+    (0..@num_callbacks - 1).each do |n|
+      items_to_compare_with.push(export.clone)
+      items_to_compare_with.push(export2.clone)
     end
     @req_index += 1
     @test_instance.assert_equal(items, items_to_compare_with)
@@ -211,6 +265,10 @@ class TestPubControlClient < Minitest::Test
     pcc.set_auth_basic('user', 'pass')
     pcc.set_test_instance(self)
     pcc.publish('chann', Item.new(TestFormatSubClass.new))
+    pcc = PccForPublishTesting2.new('uri')
+    pcc.set_auth_basic('user', 'pass')
+    pcc.set_test_instance(self)
+    pcc.publish(['chann', 'chann2'], Item.new(TestFormatSubClass.new))
   end
 
   def test_publish_async
@@ -218,6 +276,11 @@ class TestPubControlClient < Minitest::Test
     pcc.set_auth_basic('user', 'pass')
     pcc.set_test_instance(self)
     pcc.publish_async('chann', Item.new(TestFormatSubClass.new), 'callback')
+    assert(pcc.instance_variable_get(:@ensure_thread_executed))
+    pcc = PccForPublishTesting2.new('uri')
+    pcc.set_auth_basic('user', 'pass')
+    pcc.set_test_instance(self)
+    pcc.publish_async(['chann', 'chann2'], Item.new(TestFormatSubClass.new), 'callback')
     assert(pcc.instance_variable_get(:@ensure_thread_executed))
   end
 
@@ -273,6 +336,26 @@ class TestPubControlClient < Minitest::Test
     (0..@num_cbs_expected - 1).each do |n|
       reqs.push(['uri', 'Basic ' + Base64.encode64('user:pass' + n.to_s),
           export, method(:pubbatch_callback)])
+    end
+    pcc.send(:pubbatch, reqs)
+    assert_equal(@num_cbs_expected, 0)
+  end
+
+  def test_pubbatch_success2
+    pcc = PccForPubBatchTesting2.new('uri')
+    pcc.set_test_instance(self)
+    @result_expected = true
+    @message_expected = ''
+    @num_cbs_expected = 5
+    pcc.set_params(nil, @num_cbs_expected)
+    reqs = []
+    export = Item.new(TestFormatSubClass.new).export
+    export['channel'] = 'chann'
+    export2 = Item.new(TestFormatSubClass.new).export
+    export2['channel'] = 'chann2'
+    (0..@num_cbs_expected - 1).each do |n|
+      reqs.push(['uri', 'Basic ' + Base64.encode64('user:pass' + n.to_s),
+          [export, export2], method(:pubbatch_callback)])
     end
     pcc.send(:pubbatch, reqs)
     assert_equal(@num_cbs_expected, 0)
