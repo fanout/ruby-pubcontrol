@@ -55,7 +55,7 @@ class PubControlClient
   end
 
   # The synchronous publish method for publishing the specified item to the
-  # specified channel on the configured endpoint.
+  # specified channels on the configured endpoint.
   def publish(channels, item)
     exports = [channels].flatten.map do |channel|
       export            = item.export
@@ -72,7 +72,7 @@ class PubControlClient
   end
 
   # The asynchronous publish method for publishing the specified item to the
-  # specified channel on the configured endpoint. The callback method is
+  # specified channels on the configured endpoint. The callback method is
   # optional and will be passed the publishing results after publishing is
   # complete.
   def publish_async(channels, item, callback=nil)

@@ -64,7 +64,7 @@ class PubControl
   end
 
   # The synchronous publish method for publishing the specified item to the
-  # specified channel for all of the configured PubControlClient instances.
+  # specified channels for all of the configured PubControlClient instances.
   def publish(channels, item)
     @clients.each do |pub|
       pub.publish(channels, item)
@@ -72,7 +72,7 @@ class PubControl
   end
 
   # The asynchronous publish method for publishing the specified item to the
-  # specified channel on the configured endpoint. The callback method is
+  # specified channels on the configured endpoint. The callback method is
   # optional and will be passed the publishing results after publishing is
   # complete. Note that a failure to publish in any of the configured
   # PubControlClient instances will result in a failure result being passed
