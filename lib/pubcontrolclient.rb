@@ -10,7 +10,7 @@ require 'thread'
 require 'base64'
 require 'jwt'
 require 'json'
-require 'net/http'
+require 'net/http/persistent'
 require_relative 'item.rb'
 
 # The PubControlClient class allows consumers to publish either synchronously 
@@ -34,6 +34,7 @@ class PubControlClient
     @auth_basic_pass = nil
     @auth_jwt_claim = nil
     @auth_jwt_key = nil
+    @http = Net::HTTP::Persistent.new @object_id.to_s
   end
 
   # Call this method and pass a username and password to use basic
@@ -91,10 +92,10 @@ class PubControlClient
     queue_req(['pub', uri, auth, exports, callback])
   end
 
-  # The finish method is a blocking method that ensures that all asynchronous
+  # This method is a blocking method that ensures that all asynchronous
   # publishing is complete prior to returning and allowing the consumer to 
   # proceed.
-  def finish
+  def wait_all_sent
     @lock.synchronize do
       if !@thread.nil?
         queue_req(['stop'])
@@ -102,6 +103,19 @@ class PubControlClient
         @thread = nil
       end
     end
+  end
+
+  # DEPRECATED: The finish method is now deprecated in favor of the more
+  # descriptive wait_all_sent method.
+  def finish
+    wait_all_sent
+  end
+
+  # This method closes the PubControlClient instance by ensuring all pending
+  # data is sent and any open connections are closed.
+  def close
+    wait_all_sent
+    @http.shutdown
   end
 
   # A helper method for returning the current UNIX UTC timestamp.
@@ -124,8 +138,7 @@ class PubControlClient
       request['Authorization'] = auth_header
     end
     request['Content-Type'] = 'application/json'
-    use_ssl = uri.scheme == 'https'
-    response = make_http_request(uri, use_ssl, request)
+    response = make_http_request(uri, request)
     if !response.kind_of? Net::HTTPSuccess
       raise 'failed to publish: ' + response.class.to_s + ' ' +
           response.message
@@ -133,12 +146,9 @@ class PubControlClient
   end
 
   # An internal method for making the specified HTTP request to the
-  # specified URI with an option that determines whether to use
-  # SSL.
-  def make_http_request(uri, use_ssl, request)
-    response = Net::HTTP.start(uri.host, uri.port, use_ssl: use_ssl) do |http|
-      http.request(request)
-    end
+  # specified URI.
+  def make_http_request(uri, request)
+    response = @http.request uri, request
     return response
   end
 

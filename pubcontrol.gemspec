@@ -13,4 +13,5 @@ Gem::Specification.new do |s|
   s.required_ruby_version = '>= 1.9.0'
   s.add_runtime_dependency 'algorithms', '~> 0.6'
   s.add_runtime_dependency 'jwt', '~> 1.2'
+  s.add_runtime_dependency 'net-http-persistent', '~> 2.9'
 end
