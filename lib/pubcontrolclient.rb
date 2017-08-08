@@ -35,6 +35,8 @@ class PubControlClient
     @auth_jwt_claim = nil
     @auth_jwt_key = nil
     @http = Net::HTTP::Persistent.new @object_id.to_s
+    @http.open_timeout = 10
+    @http.read_timeout = 10
   end
 
   # Call this method and pass a username and password to use basic
