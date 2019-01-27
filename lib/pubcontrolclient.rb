@@ -143,7 +143,7 @@ class PubControlClient
     response = make_http_request(uri, request)
     if !response.kind_of? Net::HTTPSuccess
       raise 'failed to publish: ' + response.class.to_s + ' ' +
-          response.message
+          response.message + ' ' + response.body.dump
     end
   end
 
