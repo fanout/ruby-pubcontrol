@@ -131,7 +131,10 @@ class PubControlClient
   # data to the endpoint. This method accepts the URI endpoint, authorization
   # header, and a list of items to publish.
   def pubcall(uri, auth_header, items)
-    uri = URI(uri + '/publish/')
+    if uri.to_s[-1] != '/'
+      uri = uri.to_s + '/'
+    end
+    uri = URI(uri + 'publish/')
     content = Hash.new
     content['items'] = items
     request = Net::HTTP::Post.new(uri.request_uri)
