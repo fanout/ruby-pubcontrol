@@ -63,6 +63,8 @@ class PubControl
       pub = PubControlClient.new(entry['uri'])
       if entry.key?('iss')
         pub.set_auth_jwt({'iss' => entry['iss']}, entry['key'])
+      elsif entry.key?('key')
+        pub.set_auth_bearer(entry['key'])
       end
       @clients.push(pub)
     end

@@ -43,6 +43,9 @@ class TestPubControl < Minitest::Test
         {'uri' => 'uri', 'iss' => 'iss', 'key' => 'key'}]
     pc = PubControl.new(config)
     assert_equal(pc.instance_variable_get(:@clients).length, 2)
+    config = {'uri' => 'uri', 'key' => 'key'}
+    pc = PubControl.new(config)
+    assert_equal(pc.instance_variable_get(:@clients).length, 1)
   end
 
   def test_remove_all_clients
@@ -67,7 +70,7 @@ class TestPubControl < Minitest::Test
     pc = PubControl.new
     config = [{'uri' => 'uri'},
         {'uri' => 'uri1', 'iss' => 'iss1', 'key' => 'key1'},
-        {'uri' => 'uri2', 'iss' => 'iss2', 'key' => 'key2'}]
+        {'uri' => 'uri2', 'key' => 'key_bearer'}]
     pc.apply_config(config)
     assert_equal(pc.instance_variable_get(
         :@clients)[0].instance_variable_get(:@uri), 'uri')
@@ -85,10 +88,7 @@ class TestPubControl < Minitest::Test
     assert_equal(pc.instance_variable_get(
         :@clients)[2].instance_variable_get(:@uri), 'uri2')
     assert_equal(pc.instance_variable_get(
-        :@clients)[2].instance_variable_get(:@auth_jwt_claim),
-        {'iss' => 'iss2'})
-    assert_equal(pc.instance_variable_get(
-        :@clients)[2].instance_variable_get(:@auth_jwt_key), 'key2')
+        :@clients)[2].instance_variable_get(:@auth_bearer_key), 'key_bearer')
   end
 
   def test_finish
