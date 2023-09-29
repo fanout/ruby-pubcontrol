@@ -35,6 +35,8 @@ class PubControlClient
     @auth_jwt_claim = nil
     @auth_jwt_key = nil
     @auth_bearer_key = nil
+    @verify_iss = nil
+    @verify_key = nil
     @http = Net::HTTP::Persistent.new @object_id.to_s
     @http.open_timeout = 10
     @http.read_timeout = 10
@@ -66,6 +68,28 @@ class PubControlClient
     end
   end
 
+  def set_verify_iss(v_iss)
+    @verify_iss = v_iss
+  end
+
+  def set_verify_key(v_key)
+    @verify_key = v_key
+  end
+
+  def get_verify_headers()
+    if @verify_iss.nil? && @verify_key.nil?
+      return nil
+    end
+    out = {}
+    if !@verify_iss.nil?
+      out['verify_iss'] = @verify_iss
+    end
+    if !@verify_key.nil?
+      out['verify_key'] = @verify_key
+    end
+    return out
+  end
+
   # The synchronous publish method for publishing the specified item to the
   # specified channels on the configured endpoint.
   def publish(channels, item)
@@ -76,11 +100,13 @@ class PubControlClient
     end
     uri   = nil
     auth  = nil
+    verify_headers = nil
     @lock.synchronize do
       uri   = @uri
       auth  = gen_auth_header
+      verify_headers = get_verify_headers
     end
-    pubcall(uri, auth, exports)
+    pubcall(uri, auth, verify_headers, exports)
   end
 
   # The asynchronous publish method for publishing the specified item to the
@@ -95,12 +121,14 @@ class PubControlClient
     end
     uri   = nil
     auth  = nil
+    verify_headers = nil
     @lock.synchronize do
       uri   = @uri
       auth  = gen_auth_header
+      verify_headers = get_verify_headers
       ensure_thread
     end
-    queue_req(['pub', uri, auth, exports, callback])
+    queue_req(['pub', uri, auth, exports, callback, verify_headers])
   end
 
   # This method is a blocking method that ensures that all asynchronous
@@ -139,7 +167,7 @@ class PubControlClient
   # An internal method for preparing the HTTP POST request for publishing
   # data to the endpoint. This method accepts the URI endpoint, authorization
   # header, and a list of items to publish.
-  def pubcall(uri, auth_header, items)
+  def pubcall(uri, auth_header, verify_headers, items)
     if uri.to_s[-1] != '/'
       uri = uri.to_s + '/'
     end
@@ -152,6 +180,14 @@ class PubControlClient
       request['Authorization'] = auth_header
     end
     request['Content-Type'] = 'application/json'
+    if !verify_headers.nil?
+      if verify_headers.key?('verify_iss')
+        request['verify-iss'] = verify_headers['verify_iss']
+      end
+      if verify_headers.key?('verify_key')
+        request['verify-key'] = verify_headers['verify_key']
+      end
+    end
     response = make_http_request(uri, request)
     if !response.kind_of? Net::HTTPSuccess
       raise 'failed to publish: ' + response.class.to_s + ' ' +
@@ -176,6 +212,7 @@ class PubControlClient
     raise 'reqs length == 0' unless reqs.length > 0
     uri = reqs[0][0]
     auth_header = reqs[0][1]
+    verify_headers = reqs[0][4]
     items = Array.new
     callbacks = Array.new
     reqs.each do |req|
@@ -187,7 +224,7 @@ class PubControlClient
       callbacks.push(req[3])
     end
     begin
-      pubcall(uri, auth_header, items)
+      pubcall(uri, auth_header, verify_headers, items)
       result = [true, '']
     rescue => e
       result = [false, e.message]
@@ -222,7 +259,7 @@ class PubControlClient
           quit = true
           break
         end
-        reqs.push([m[1], m[2], m[3], m[4]])
+        reqs.push([m[1], m[2], m[3], m[4], m[5]])
       end
       @thread_mutex.unlock
       if reqs.length > 0

@@ -66,6 +66,12 @@ class PubControl
       elsif entry.key?('key')
         pub.set_auth_bearer(entry['key'])
       end
+      if entry.key?('verify-iss')
+        pub.set_verify_iss(entry['verify-iss'])
+      end
+      if entry.key?('verify-key')
+          pub.set_verify_key(entry['verify-key'])
+      end
       @clients.push(pub)
     end
   end
@@ -154,7 +160,7 @@ class PubControl
   def close_clients
     verify_not_closed
     @clients.each do |pub|
-      pub.close()
+      pub.close
     end
     @closed = true
   end

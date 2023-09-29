@@ -24,10 +24,12 @@ class PubControlClientForTesting < PubControlClient
 end
 
 class PccForPublishTesting < PubControlClientForTesting
-  def pubcall(uri, auth_header, items)
+  def pubcall(uri, auth_header, verify_headers, items)
     @test_instance.assert_equal(uri, 'uri')
     @test_instance.assert_equal(auth_header, 'Basic ' + Base64.encode64(
         'user:pass'))
+    @test_instance.assert_equal(verify_headers['verify_iss'], 'v_iss')
+    @test_instance.assert_equal(verify_headers['verify_key'], 'v_key')
     @test_instance.assert_equal(items, [{'name' => {'body' => 'bodyvalue'},
         'channel' => 'chann'}])
   end
@@ -40,6 +42,8 @@ class PccForPublishTesting < PubControlClientForTesting
     @test_instance.assert_equal(req[3], [{'name' => {'body' => 'bodyvalue'},
         'channel' => 'chann'}])
     @test_instance.assert_equal(req[4], 'callback')
+    @test_instance.assert_equal(req[5]['verify_iss'], 'v_iss')
+    @test_instance.assert_equal(req[5]['verify_key'], 'v_key')
   end
 
   def ensure_thread
@@ -48,7 +52,7 @@ class PccForPublishTesting < PubControlClientForTesting
 end
 
 class PccForPublishTesting2 < PubControlClientForTesting
-  def pubcall(uri, auth_header, items)
+  def pubcall(uri, auth_header, verify_headers, items)
     @test_instance.assert_equal(uri, 'uri')
     @test_instance.assert_equal(auth_header, 'Basic ' + Base64.encode64(
         'user:pass'))
@@ -66,6 +70,8 @@ class PccForPublishTesting2 < PubControlClientForTesting
         'channel' => 'chann'}, {'name' => {'body' => 'bodyvalue'},
         'channel' => 'chann2'}])
     @test_instance.assert_equal(req[4], 'callback')
+    @test_instance.assert_equal(req[5]['verify_iss'], 'v_iss')
+    @test_instance.assert_equal(req[5]['verify_key'], 'v_key')
   end
 
   def ensure_thread
@@ -81,8 +87,12 @@ class PccForPubCallTesting < PubControlClientForTesting
     @http_result_failure = result_failure
   end
 
-  def make_http_request(uri, use_ssl, request)
+  def make_http_request(uri, request)
     @test_instance.assert_equal(uri, URI(@http_uri + '/publish/'))
+    use_ssl = false
+    if uri.to_s.include?('https')
+      use_ssl = true
+    end
     @test_instance.assert_equal(use_ssl, @http_use_ssl)
     @test_instance.assert_equal(request.body, {'items' => 
         [{'name' => {'body' => 'bodyvalue'}, 'channel' => 'chann'}]}.to_json)
@@ -103,10 +113,12 @@ class PccForPubBatchTesting < PubControlClientForTesting
     @http_result_failure = result_failure
   end
 
-  def pubcall(uri, auth_header, items)
+  def pubcall(uri, auth_header, verify_headers, items)
     @test_instance.assert_equal(uri, 'uri')
     @test_instance.assert_equal(auth_header, 'Basic ' + Base64.encode64(
         'user:pass' + @req_index.to_s))
+    @test_instance.assert_equal(verify_headers['verify_iss'], 'v_iss')
+    @test_instance.assert_equal(verify_headers['verify_key'], 'v_key')
     items_to_compare_with = []
     export = Item.new(TestFormatSubClass.new).export
     export['channel'] = 'chann'
@@ -128,7 +140,7 @@ class PccForPubBatchTesting2 < PubControlClientForTesting
     @http_result_failure = result_failure
   end
 
-  def pubcall(uri, auth_header, items)
+  def pubcall(uri, auth_header, verify_headers, items)
     @test_instance.assert_equal(uri, 'uri')
     @test_instance.assert_equal(auth_header, 'Basic ' + Base64.encode64(
         'user:pass' + @req_index.to_s))
@@ -167,6 +179,8 @@ class PccForPubWorkerTesting < PubControlClientForTesting
       export['channel'] = 'chann'
       @test_instance.assert_equal(req[2], export)
       @test_instance.assert_equal(req[3], 'callback')
+      @test_instance.assert_equal(req[4]['verify_iss'], 'v_iss')
+      @test_instance.assert_equal(req[4]['verify_key'], 'v_key')
       @req_index += 1
     end     
   end
@@ -185,6 +199,8 @@ class TestPubControlClient < Minitest::Test
     assert_equal(pcc.instance_variable_get(:@auth_jwt_claim), nil)
     assert_equal(pcc.instance_variable_get(:@auth_jwt_key), nil)
     assert_equal(pcc.instance_variable_get(:@auth_bearer_key), nil)
+    assert_equal(pcc.instance_variable_get(:@verify_iss), nil)
+    assert_equal(pcc.instance_variable_get(:@verify_key), nil)
     assert(!pcc.instance_variable_get(:@lock).nil?)
   end
 
@@ -206,6 +222,27 @@ class TestPubControlClient < Minitest::Test
     pcc = PubControlClient.new('uri')
     pcc.set_auth_bearer('key')
     assert_equal(pcc.instance_variable_get(:@auth_bearer_key), 'key')
+  end
+
+  def test_set_verify_iss
+    pcc = PubControlClient.new('uri')
+    pcc.set_verify_iss('v_iss')
+    assert_equal(pcc.instance_variable_get(:@verify_iss), 'v_iss')
+  end
+
+  def test_set_verify_key
+    pcc = PubControlClient.new('uri')
+    pcc.set_verify_key('v_key')
+    assert_equal(pcc.instance_variable_get(:@verify_key), 'v_key')
+  end
+
+  def test_get_verify_headers
+    pcc = PubControlClient.new('uri')
+    pcc.set_verify_iss('v_iss')
+    pcc.set_verify_key('v_key')
+    verify_headers = pcc.get_verify_headers
+    assert_equal(verify_headers['verify_iss'], 'v_iss')
+    assert_equal(verify_headers['verify_key'], 'v_key')
   end
 
   def test_ensure_thread
@@ -276,10 +313,14 @@ class TestPubControlClient < Minitest::Test
   def test_publish
     pcc = PccForPublishTesting.new('uri')
     pcc.set_auth_basic('user', 'pass')
+    pcc.set_verify_iss('v_iss')
+    pcc.set_verify_key('v_key')
+    verify_headers = pcc.get_verify_headers
     pcc.set_test_instance(self)
     pcc.publish('chann', Item.new(TestFormatSubClass.new))
     pcc = PccForPublishTesting2.new('uri')
     pcc.set_auth_basic('user', 'pass')
+    verify_headers = pcc.get_verify_headers
     pcc.set_test_instance(self)
     pcc.publish(['chann', 'chann2'], Item.new(TestFormatSubClass.new))
   end
@@ -287,11 +328,15 @@ class TestPubControlClient < Minitest::Test
   def test_publish_async
     pcc = PccForPublishTesting.new('uri')
     pcc.set_auth_basic('user', 'pass')
+    pcc.set_verify_iss('v_iss')
+    pcc.set_verify_key('v_key')
     pcc.set_test_instance(self)
     pcc.publish_async('chann', Item.new(TestFormatSubClass.new), 'callback')
     assert(pcc.instance_variable_get(:@ensure_thread_executed))
     pcc = PccForPublishTesting2.new('uri')
     pcc.set_auth_basic('user', 'pass')
+    pcc.set_verify_iss('v_iss')
+    pcc.set_verify_key('v_key')
     pcc.set_test_instance(self)
     pcc.publish_async(['chann', 'chann2'], Item.new(TestFormatSubClass.new), 'callback')
     assert(pcc.instance_variable_get(:@ensure_thread_executed))
@@ -302,9 +347,12 @@ class TestPubControlClient < Minitest::Test
     pcc.set_auth_basic('user', 'pass')
     pcc.set_params('http://localhost:8080', false, 'Basic ' +
         Base64.encode64('user:pass'))
+    pcc.set_verify_iss('v_iss')
+    pcc.set_verify_key('v_key')
+    verify_headers = pcc.get_verify_headers
     pcc.set_test_instance(self)
-    pcc.send(:pubcall, 'http://localhost:8080', 'Basic ' +
-        Base64.encode64('user:pass'), [{'name' => {'body' => 'bodyvalue'},
+    pcc.send(:pubcall, 'http://localhost:8080', 'Basic ' + Base64.encode64('user:pass'), 
+        verify_headers, [{'name' => {'body' => 'bodyvalue'},
         'channel' => 'chann'}])
   end
 
@@ -312,13 +360,16 @@ class TestPubControlClient < Minitest::Test
     pcc = PccForPubCallTesting.new('uri')
     pcc.set_auth_jwt({'iss' => 'hello', 'exp' => 1426106601},
         Base64.decode64('key'))
+    pcc.set_verify_iss('v_iss')
+    pcc.set_verify_key('v_key')
+    verify_headers = pcc.get_verify_headers
     pcc.set_test_instance(self)
     pcc.set_params('https://localhost:8080', true, 'Bearer eyJ0eXAiOiJKV' +
         '1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJoZWxsbyIsImV4cCI6MTQyN' +
         'jEwNjYwMX0.92NIP0QPWbA-wRgsTA6zCwxejMgLkHep0S4UcAY3tN4')
     pcc.send(:pubcall, 'https://localhost:8080', 'Bearer eyJ0eXAiOiJKV' +
         '1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJoZWxsbyIsImV4cCI6MTQyN' +
-        'jEwNjYwMX0.92NIP0QPWbA-wRgsTA6zCwxejMgLkHep0S4UcAY3tN4',
+        'jEwNjYwMX0.92NIP0QPWbA-wRgsTA6zCwxejMgLkHep0S4UcAY3tN4', verify_headers,
         [{'name' => {'body' => 'bodyvalue'}, 'channel' => 'chann'}])
   end
 
@@ -327,7 +378,7 @@ class TestPubControlClient < Minitest::Test
     pcc.set_params('http://localhost:8080', false, nil, true)
     pcc.set_test_instance(self)
     begin
-      pcc.send(:pubcall, 'http://localhost:8080', nil, [{'name' =>
+      pcc.send(:pubcall, 'http://localhost:8080', nil, nil, [{'name' =>
           {'body' => 'bodyvalue'}, 'channel' => 'chann'}])
       assert(false, 'HTTPServerError not raised')
     rescue => e
@@ -339,16 +390,19 @@ class TestPubControlClient < Minitest::Test
   def test_pubbatch_success
     pcc = PccForPubBatchTesting.new('uri')
     pcc.set_test_instance(self)
+    pcc.set_verify_iss('v_iss')
+    pcc.set_verify_key('v_key')
     @result_expected = true
     @message_expected = ''
     @num_cbs_expected = 5
     pcc.set_params(nil, @num_cbs_expected)
     reqs = []
+    verify_headers = pcc.get_verify_headers
     export = Item.new(TestFormatSubClass.new).export
     export['channel'] = 'chann'
     (0..@num_cbs_expected - 1).each do |n|
       reqs.push(['uri', 'Basic ' + Base64.encode64('user:pass' + n.to_s),
-          export, method(:pubbatch_callback)])
+          export, method(:pubbatch_callback), verify_headers])
     end
     pcc.send(:pubbatch, reqs)
     assert_equal(@num_cbs_expected, 0)
@@ -356,6 +410,8 @@ class TestPubControlClient < Minitest::Test
 
   def test_pubbatch_success2
     pcc = PccForPubBatchTesting2.new('uri')
+    pcc.set_verify_iss('v_iss')
+    pcc.set_verify_key('v_key')
     pcc.set_test_instance(self)
     @result_expected = true
     @message_expected = ''
@@ -380,13 +436,16 @@ class TestPubControlClient < Minitest::Test
     @result_expected = false
     @message_expected = 'error message'
     @num_cbs_expected = 5
+    pcc.set_verify_iss('v_iss')
+    pcc.set_verify_key('v_key')
+    verify_headers = pcc.get_verify_headers
     pcc.set_params(true, @num_cbs_expected)
     reqs = []
     export = Item.new(TestFormatSubClass.new).export
     export['channel'] = 'chann'
     (0..@num_cbs_expected - 1).each do |n|
       reqs.push(['uri', 'Basic ' + Base64.encode64('user:pass' + n.to_s),
-          export, method(:pubbatch_callback)])
+          export, method(:pubbatch_callback), verify_headers])
     end
     pcc.send(:pubbatch, reqs)
     assert_equal(@num_cbs_expected, 0)
@@ -402,13 +461,16 @@ class TestPubControlClient < Minitest::Test
     pcc = PccForPubWorkerTesting.new('uri')
     pcc.set_test_instance(self)
     pcc.set_params
+    pcc.set_verify_iss('v_iss')
+    pcc.set_verify_key('v_key')
+    verify_headers = pcc.get_verify_headers
     pcc.send(:ensure_thread)
     export = Item.new(TestFormatSubClass.new).export
     export['channel'] = 'chann'
     (0..500 - 1).each do |n|
       pcc.instance_variable_get(:@req_queue).push_back(['pub', 'uri',
           'Basic ' + Base64.encode64('user:pass' + n.to_s), export,
-          'callback'])
+          'callback', verify_headers])
     end
     pcc.finish
     assert_equal(pcc.req_index, 500)
@@ -418,6 +480,9 @@ class TestPubControlClient < Minitest::Test
     pcc = PccForPubWorkerTesting.new('uri')
     pcc.set_test_instance(self)
     pcc.set_params
+    pcc.set_verify_iss('v_iss')
+    pcc.set_verify_key('v_key')
+    verify_headers = pcc.get_verify_headers
     pcc.send(:ensure_thread)
     export = Item.new(TestFormatSubClass.new).export
     export['channel'] = 'chann'
@@ -427,7 +492,7 @@ class TestPubControlClient < Minitest::Test
       else
         pcc.instance_variable_get(:@req_queue).push_back(['pub', 'uri',
             'Basic ' + Base64.encode64('user:pass' + n.to_s), export,
-            'callback'])
+            'callback', verify_headers])
       end
     end
     pcc.finish

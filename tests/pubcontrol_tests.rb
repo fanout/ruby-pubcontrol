@@ -20,6 +20,14 @@ class PubControlClientTestClass
     @was_finish_called = true
   end
 
+  def close
+    @was_finish_called = true
+  end
+
+  def wait_all_sent
+    @was_finish_called = true
+  end
+
   def publish(channel, item)
     @publish_channel = channel
     @publish_item = item
