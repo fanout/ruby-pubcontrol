@@ -76,7 +76,7 @@ class PubControlClient
     @verify_key = v_key
   end
 
-  def get_verify_headers()
+  def get_verify_components()
     if @verify_iss.nil? && @verify_key.nil?
       return nil
     end
@@ -100,13 +100,13 @@ class PubControlClient
     end
     uri   = nil
     auth  = nil
-    verify_headers = nil
+    verify_components = nil
     @lock.synchronize do
       uri   = @uri
       auth  = gen_auth_header
-      verify_headers = get_verify_headers
+      verify_components = get_verify_components
     end
-    pubcall(uri, auth, verify_headers, exports)
+    pubcall(uri, auth, verify_components, exports)
   end
 
   # The asynchronous publish method for publishing the specified item to the
@@ -121,14 +121,14 @@ class PubControlClient
     end
     uri   = nil
     auth  = nil
-    verify_headers = nil
+    verify_components = nil
     @lock.synchronize do
       uri   = @uri
       auth  = gen_auth_header
-      verify_headers = get_verify_headers
+      verify_components = get_verify_components
       ensure_thread
     end
-    queue_req(['pub', uri, auth, exports, callback, verify_headers])
+    queue_req(['pub', uri, auth, exports, callback, verify_components])
   end
 
   # This method is a blocking method that ensures that all asynchronous
@@ -167,7 +167,7 @@ class PubControlClient
   # An internal method for preparing the HTTP POST request for publishing
   # data to the endpoint. This method accepts the URI endpoint, authorization
   # header, and a list of items to publish.
-  def pubcall(uri, auth_header, verify_headers, items)
+  def pubcall(uri, auth_header, verify_components, items)
     if uri.to_s[-1] != '/'
       uri = uri.to_s + '/'
     end
@@ -180,12 +180,12 @@ class PubControlClient
       request['Authorization'] = auth_header
     end
     request['Content-Type'] = 'application/json'
-    if !verify_headers.nil?
-      if verify_headers.key?('verify_iss')
-        request['verify-iss'] = verify_headers['verify_iss']
+    if !verify_components.nil?
+      if verify_components.key?('verify_iss')
+        request['verify-iss'] = verify_components['verify_iss']
       end
-      if verify_headers.key?('verify_key')
-        request['verify-key'] = verify_headers['verify_key']
+      if verify_components.key?('verify_key')
+        request['verify-key'] = verify_components['verify_key']
       end
     end
     response = make_http_request(uri, request)
@@ -212,7 +212,7 @@ class PubControlClient
     raise 'reqs length == 0' unless reqs.length > 0
     uri = reqs[0][0]
     auth_header = reqs[0][1]
-    verify_headers = reqs[0][4]
+    verify_components = reqs[0][4]
     items = Array.new
     callbacks = Array.new
     reqs.each do |req|
@@ -224,7 +224,7 @@ class PubControlClient
       callbacks.push(req[3])
     end
     begin
-      pubcall(uri, auth_header, verify_headers, items)
+      pubcall(uri, auth_header, verify_components, items)
       result = [true, '']
     rescue => e
       result = [false, e.message]
