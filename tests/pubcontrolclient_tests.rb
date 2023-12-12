@@ -184,6 +184,7 @@ class TestPubControlClient < Minitest::Test
     assert_equal(pcc.instance_variable_get(:@auth_basic_pass), nil)
     assert_equal(pcc.instance_variable_get(:@auth_jwt_claim), nil)
     assert_equal(pcc.instance_variable_get(:@auth_jwt_key), nil)
+    assert_equal(pcc.instance_variable_get(:@auth_bearer_key), nil)
     assert(!pcc.instance_variable_get(:@lock).nil?)
   end
 
@@ -199,6 +200,12 @@ class TestPubControlClient < Minitest::Test
     pcc.set_auth_jwt('claim', 'key')
     assert_equal(pcc.instance_variable_get(:@auth_jwt_claim), 'claim')
     assert_equal(pcc.instance_variable_get(:@auth_jwt_key), 'key')
+  end
+
+  def test_set_auth_bearer
+    pcc = PubControlClient.new('uri')
+    pcc.set_auth_bearer('key')
+    assert_equal(pcc.instance_variable_get(:@auth_bearer_key), 'key')
   end
 
   def test_ensure_thread
@@ -230,6 +237,12 @@ class TestPubControlClient < Minitest::Test
     assert_equal(pcc.send(:gen_auth_header), 'Bearer eyJ0eXAiOiJKV' +
         '1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJoZWxsbyIsImV4cCI6MTQyN' +
         'jEwNjYwMX0.92NIP0QPWbA-wRgsTA6zCwxejMgLkHep0S4UcAY3tN4')
+  end
+
+  def test_gen_auth_header_bearer
+    pcc = PubControlClient.new('uri')
+    pcc.set_auth_bearer('key')
+    assert_equal(pcc.send(:gen_auth_header), 'Bearer key')
   end
 
   def test_gen_auth_header_nil

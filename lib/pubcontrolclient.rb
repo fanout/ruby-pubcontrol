@@ -34,6 +34,7 @@ class PubControlClient
     @auth_basic_pass = nil
     @auth_jwt_claim = nil
     @auth_jwt_key = nil
+    @auth_bearer_key = nil
     @http = Net::HTTP::Persistent.new @object_id.to_s
     @http.open_timeout = 10
     @http.read_timeout = 10
@@ -54,6 +55,14 @@ class PubControlClient
     @lock.synchronize do
       @auth_jwt_claim = claim
       @auth_jwt_key = key
+    end
+  end
+
+  # Call this method and pass a key to use bearer authenticate
+  # with the configured endpoint
+  def set_auth_bearer(key)
+    @lock.synchronize do
+      @auth_bearer_key = key
     end
   end
 
@@ -131,7 +140,10 @@ class PubControlClient
   # data to the endpoint. This method accepts the URI endpoint, authorization
   # header, and a list of items to publish.
   def pubcall(uri, auth_header, items)
-    uri = URI(uri + '/publish/')
+    if uri.to_s[-1] != '/'
+      uri = uri.to_s + '/'
+    end
+    uri = URI(uri + 'publish/')
     content = Hash.new
     content['items'] = items
     request = Net::HTTP::Post.new(uri.request_uri)
@@ -235,6 +247,8 @@ class PubControlClient
         claim = @auth_jwt_claim
       end
       return 'Bearer ' + JWT.encode(claim, @auth_jwt_key)
+    elsif !@auth_bearer_key.nil?
+      return 'Bearer ' + @auth_bearer_key
     else
       return nil
     end
