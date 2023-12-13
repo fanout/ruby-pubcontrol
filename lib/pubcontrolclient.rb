@@ -35,7 +35,7 @@ class PubControlClient
     @auth_jwt_claim = nil
     @auth_jwt_key = nil
     @auth_bearer_key = nil
-    @http = Net::HTTP::Persistent.new @object_id.to_s
+    @http = Net::HTTP::Persistent.new name: @object_id.to_s
     @http.open_timeout = 10
     @http.read_timeout = 10
   end
